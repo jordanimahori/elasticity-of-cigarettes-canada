@@ -1,0 +1,226 @@
+
+# Setting up STATA
+clear all
+set more off
+macro drop _all
+log close _all
+
+cd "C:\Users\Lucas\Google Drive\Fourth Year\Second Semester\ECO446\Coding"
+//cd "C:\Users\Florian\Downloads"
+
+import excel "MASTER DATA MARCH 21", sheet("Complete Data") firstrow
+
+log using "ECO446_paper.log", replace
+
+
+
+
+		*===== CLEANING DATA & GENERATING CONTROL VARIABLES =====*
+
+// Creating ln versions of our variables
+gen lnsales = ln(cartons)
+gen lnprice = ln(price_2002)
+gen lntotal_tax = ln(total_weighted_tax)
+
+// Encoding province as a factor variable
+encode province, generate(province_var)
+
+// Restricting our sample to years for which we have data
+drop if year <= 2002
+
+// Telling Stata to always omit Saskatchewan and 2017
+char province_var[omit]9
+char year[omit]2017
+
+// Setting up macro of control variables
+global controls rgdp_2002 unemployment 
+
+			
+			
+		*===== ESTIMATING OUR BASIC MODEL (NO IV) =====*
+
+// Running a basic regression, no IV
+regress lnsales lnprice $controls i.province_var i.year i.province_var#c.year
+estimates store model_a
+
+			
+			*===== ESTIMATING OUR IV REGRESSSIONS =====* 
+	
+// Estimating our first equation, and testing the first stage
+ivreg2 lnsales (lnprice = lntotal_tax) $controls i.province_var i.year ///
+i.province_var#c.year, ffirst
+estimates store model_b
+
+
+
+	* ==== RE-ESTIMATING EQUATIONS AFTER DROPPING SMUGGLING PROVINCES ====*
+
+		
+//Dropping Smuggling Provinces
+drop if province == "ON" & year<= 2017 & year>=2006
+drop if province == "QC" & year<= 2009 & year>=2006
+drop if province == "NB" & year<=2017 & year>=2015
+drop if province == "NS" & year<=2008 & year>=2006
+
+
+// Estimating our first model
+ivreg2 lnsales (lnprice = lntotal_tax) $controls i.province_var i.year ///
+i.province_var#c.year, ffirst  
+estimates store model_c
+
+
+// Exporting results as a LaTeX table
+//esttab model_a model_b model_c using basic_results.tex
+
+
+
+
+	*===== RUNNING ROBUSTNESS TESTS (RESTRICTED PROVINCES) =====*
+
+// estimating elasticity through diff-in-diff (no time trend, no controls)
+ivregress 2sls lnsales (lnprice = lntotal_tax) i.province_var i.year 
+estimates store rbtest1
+
+// estimating elasticity through diff-in-diff (no time trend, controls)
+ivregress 2sls lnsales (lnprice = lntotal_tax) $controls i.province_var i.year 
+estimates store rbtest2
+
+// estimating elasticity through diff-in-diff (time trend, no RGDP)
+ivregress 2sls lnsales (lnprice = lntotal_tax) i.province_var i.year i.province_var#c.year 
+estimates store rbtest3
+
+// estimating elasticity through diff-in-diff (time trend, no unemployment)
+ivregress 2sls lnsales (lnprice = lntotal_tax) rgdp_2002 i.province_var i.year i.province_var#c.year 
+estimates store rbtest4
+
+// estimating elasticity through diff-in-diff (time trend & controls)
+ivregress 2sls lnsales (lnprice = lntotal_tax) $controls i.year i.province_var i.province_var#c.year
+estimates store rbtest5
+
+
+// Exporting the results in a LaTeX table
+//esttab rbtest1 rbtest2 rbtest3 rbtest4 rbtest5 using robust_test.tex
+
+
+
+
+
+			*===== RUNNING ROBUSTNESS TESTS (UNRESTRICTED) =====*
+
+clear
+import excel "MASTER DATA MARCH 21", sheet("Complete Data") firstrow
+
+// Creating ln versions of our variables
+gen lnsales = ln(cartons_pc)
+gen lnprice = ln(price_2002)
+gen lntotal_tax = ln(total_weighted_tax)
+
+// Encoding province as a factor variable
+encode province, generate(province_var)
+
+// Restricting our sample to years for which we have data
+drop if year <= 2002
+
+// Telling Stata to always omit Saskatchewan and 2017
+char province_var[omit]9
+char year[omit]2017
+
+// Setting up macro of control variables
+global controls rgdp_2002 unemployment 			
+			
+			
+// Estimating elasticity through diff-in-diff (no time trend, no controls)
+ivregress 2sls lnsales (lnprice = lntotal_tax) i.province_var i.year 
+estimates store rbtest6
+
+// Estimating elasticity through diff-in-diff (no time trend, controls)
+ivregress 2sls lnsales (lnprice = lntotal_tax) $controls i.province_var i.year 
+estimates store rbtest7
+
+// Estimating elasticity through diff-in-diff (time trend, no RGDP)
+ivregress 2sls lnsales (lnprice = lntotal_tax) i.province_var i.year i.province_var#c.year 
+estimates store rbtest8
+
+// Estimating elasticity through diff-in-diff (time trend, no unemployment)
+ivregress 2sls lnsales (lnprice = lntotal_tax) rgdp_2002 i.province_var i.year i.province_var#c.year 
+estimates store rbtest9
+
+// Estimating elasticity through diff-in-diff (time trend & controls)
+ivregress 2sls lnsales (lnprice = lntotal_tax) $controls i.year i.province_var i.province_var#c.year
+estimates store rbtest10
+
+// Exporting results as a LaTeX table
+//esttab rbtest6 rbtest7 rbtest8 rbtest9 rbtest10 using robust_test_unrestricted.tex
+
+
+
+								*===== RUNNING CHOW TEST =====*
+
+clear
+import excel "MASTER DATA MARCH 21", sheet("Complete Data") firstrow
+
+// Creating ln versions of our variables
+gen lnsales = ln(cartons_pc)
+gen lnprice = ln(price_2002)
+gen lntotal_tax = ln(total_weighted_tax)
+
+// Encoding province as a factor variable
+encode province, generate(province_var)
+
+// Restricting our sample to years for which we have data
+drop if year <= 2002
+
+// Telling Stata to always omit Saskatchewan and 2017
+char province_var[omit]9
+char year[omit]2017
+
+// Setting up macro of control variables
+global controls rgdp_2002 unemployment
+
+//Two Separate Regressions
+ivreg2 lnsales (lnprice = lntotal_tax) $controls i.province_var i.year ///
+i.province_var#c.year if year < 2013
+
+ivreg2 lnsales (lnprice = lntotal_tax) $controls i.province_var i.year ///
+i.province_var#c.year if year >= 2013
+
+//Test the Chow Test
+generate g2 = (year >= 2013)
+generate g1 = (year < 2013)
+generate g2lnprice = g2*lnprice
+generate g2rgdp_2002 = g2*rgdp_2002
+generate g2unemployment = g2*unemployment
+generate g1lnprice = g1*lnprice
+generate g1rgdp_2002 = g1*rgdp_2002
+generate g1unemployment = g1*unemployment
+
+ivregress 2sls lnsales (g1lnprice = lntotal_tax) g1rgdp_2002 i.province_var i.year ///
+i.province_var#c.year g1unemployment g2lnprice g2rgdp_2002 i.province_var#g2 ///
+i.province_var#c.year#g2 g2unemployment
+
+test g2lnprice=g1lnprice
+test g2rgdp_2002=g1rgdp_2002, accum
+test g2unemployment=g1unemployment, accum
+
+
+
+				*===== RUNNING E-cigarette Correlation Test =====*
+
+clear
+
+import excel "E-cigarette Usage Data", sheet("Sheet1") firstrow
+
+// Encoding province as a factor variable
+encode province, generate(province_var)
+
+// Restricting our sample to years for which we have data
+drop if year <= 2002
+
+// Telling Stata to always omit Saskatchewan and 2017
+char province_var[omit]9
+char year[omit]2017
+
+//Test if the proportion of e-cigarette users is affected by the tax on cigarettes
+ivregress 2sls prop30d (Pcig = TotalWeightedTax) i.year i.province_var i.province_var#c.year rgdp_2002 cartons_pc_15andover unemployment lico
+
+**the end
