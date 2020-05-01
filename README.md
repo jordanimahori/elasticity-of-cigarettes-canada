@@ -1,1 +1,9 @@
-# elasticity-cigarettes
+# Estimating the Price Elasticity of Demand for Legal Cigarettes in Canada
+
+This analysis is based on a paper written by Lucas Bennett, Florian Naggy, Stefan Rus and myself originally produced using STATA for ECO439 - Advanced Public Economics at the University of Toronto. As part of my efforts to learn R, I translated our original code from STATA into R, as well as wrote a script to reproduce the steps to clean the data that we originally had done via Excel (as well as made some minor modifications). Any errors in translating the code from that paper are my own. 
+
+The purpose of our analysis was to update the findings of Gruber et al. (2003) which estimated the price elasticity of demand for legal cigarettes in Canada, while accounting for the impact of smuggling. In Canada, tobacco products are subject to relatively high taxes to discourage smoking. We exploited changes in the tax on tobacco to estimate the price elasticity of demand for cigarettes. As we argue, cigarette taxes are a largely political decision and variation of the tax on tobacco should produce an exogenous shock to the price of cigarettes. Because taxes are set at the provincial level, we were able to use a differences-in-differences approach to control for unobserved factors. 
+
+You can find the original [paper] and [code] at their respective links. The corresponding R code can be found in the scripts above, as well as an R Markdown file that provides a high-level summary of the findings of our analysis, although quite a bit of depth has been excluded for the sake of brevity. If you are interested in this issue, I suggest reading the full version of the paper. 
+
+While our original paper was well received, this naturally has not gone through any peer review or other rigorous vetting process, and caution should be applied in interpreting any of the results herein. Comments and suggestions are always appreciated. 
