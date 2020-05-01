@@ -149,3 +149,4 @@ ivreg(prop30d ~ Pcig + as_factor(year) + province + province*year + rgdp_2002 + 
 
 
                                            # END # 
+f

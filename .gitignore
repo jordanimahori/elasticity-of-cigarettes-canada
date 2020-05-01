@@ -1,3 +1,4 @@
+
 # Datasets
 *.csv
 *.RData
@@ -43,3 +44,15 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+.apdisk
