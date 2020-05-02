@@ -1,17 +1,9 @@
 
-# This code is translating code originally written for STATA for ECO444 - Advanced Public 
-# Economics at the University of Toronto. The empirical strategy and corresponding paper was 
-# written by Lucas Bennet, Stefan Rus, Florian Naggy and Jordan Imahori. See README or 
-# original paper for additional details and context. Any errors are our own.
-
-
 # TO DO 
 # 1. Test of first stage strength (fix)
 # 2. Chow test (fix)
 # 3. Check the datasets
 
-
-# Setting up everything... 
 
 # Clearing previous session.
 rm(list = ls())
@@ -149,4 +141,4 @@ ivreg(prop30d ~ Pcig + as_factor(year) + province + province*year + rgdp_2002 + 
 
 
                                            # END # 
-f
+
