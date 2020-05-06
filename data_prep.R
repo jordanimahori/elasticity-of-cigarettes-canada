@@ -12,6 +12,9 @@
 
 # -------------- Preparing the Environment -------------- #
 
+# Clearing Environment 
+rm(list = ls())
+
 # Loading Packages
 library(tidyverse)
 library(lubridate)
@@ -26,35 +29,14 @@ population <- read_csv("datasets/population.csv")
 sales_carton <- read_csv("datasets/sales_cartons_cigarettes.csv")
 
 
-
-# ----------- Function for Averaging Monthly Values ---------- # 
+# ----------- Cleaning Tax Dataset ---------- # 
 
 # Replacing "-" with 0 to represent no change in excise tax rates.
 for (i in c(4, 6, 8)) {
     excise_tax[[i]][excise_tax[[i]] == "-"] <- 0
 }
 
-# The dataset was constructed by taking the change in tax rates that we obtained from one source
-# and using that to extrapolate from a snapshot of excise taxes in 2016 to obatin the tax rates 
-# in every year in each province. It starts on December 20, 2003 so for the first value I'm 
-# changing the date to Jan 1, 2004. 
-
-excise_tax <- select(excise_tax, !c(change_excise, change_sales, fed_change))
-
-excise_tax$date[excise_tax$year == 2003] <- as_date("2004-01-01")
-excise_tax$yday <- yday(excise_tax$date)
-
-
-
-
-# Pseudo Code: Want to create an weighted average of tax for each year. Weights applied based on when the tax 
-# change came into effect. 
-
-
-
-
 # Create a "fake" data point on Jan 1 of each year equal to the tax rate in the previous year. 
-
 year <- matrix(nrow = 15, ncol = length(unique(excise_tax$province)))
 date <- matrix(nrow = 15, ncol = length(unique(excise_tax$province)))
 province <- matrix(nrow = 15, ncol = length(unique(excise_tax$province)))
@@ -62,7 +44,6 @@ tax_excise <- matrix(nrow = 15, ncol = length(unique(excise_tax$province)))
 tax_sales <- matrix(nrow = 15, ncol = length(unique(excise_tax$province)))
 fed_excise <- matrix(nrow = 15, ncol = length(unique(excise_tax$province)))
 yday <- matrix(nrow = 15, ncol = length(unique(excise_tax$province)))
-
 
 for (i in 1:10) {
     for (j in 1:15) {
@@ -80,13 +61,37 @@ add <- bind_cols(year = as.vector(year), date = as_date(as.vector(date)), provin
                  tax_excise = as.vector(tax_excise), tax_sales = as.vector(tax_sales), 
                  fed_excise = as.vector(fed_excise), yday = as.vector(yday))
 
-# Identifying any rows where there are observations landing on Jan 1.
-unique(excise_tax$date[str_detect(as.character(excise_tax$date), "20??-01-01")])
+# Identifying any rows where there are observations landing on Jan 1 and filtering them out. 
+duplicate <- unique(excise_tax$date[str_which(as.character(excise_tax$date), ("20..-01-01"))])
 
-# Filtering out those rows from my constructed dummy values. Binding with full tax data.
-add <- filter(add, date != as_date("2012-01-01"))
-tax <- bind_rows(excise_tax, add)
+# Binding with full tax data. Sorting by date. 
+tax <- add %>%
+    filter(!(add$date %in% duplicate)) %>%
+    bind_rows(excise_tax)
+tax <- arrange(tax, province, date)
 
+# Filling in dates generated previously using the values from the period immediately before it.
+tax <- tax %>%
+    group_by(province) %>%
+    fill(tax_excise, tax_sales, fed_excise, .direction = "down")
+
+# Within a given year, create a column equal to the number of days until the subsequent date.
+excise_tax$yday <- yday(excise_tax$date)
+tax$yday[is.na(tax$yday)] <- 0
+group_by(tax, province)
+tax$period <- 0
+
+for (i in seq_along(yday)) {
+    if (tax$year[i+1] == tax$year[i])  {
+        tax$period[i] <- tax$yday[i+1] - tax$yday[i]
+        }
+    else {
+        tax$period[i] <- 365 - tax$yday[i]
+    }
+}
+
+# Reality Check
+range(tax$period)
 
 
 # --------------- Constructing Variables ---------------- #
