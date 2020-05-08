@@ -45,15 +45,15 @@ tax_sales <- matrix(nrow = 15, ncol = length(unique(excise_tax$province)))
 fed_excise <- matrix(nrow = 15, ncol = length(unique(excise_tax$province)))
 yday <- matrix(nrow = 15, ncol = length(unique(excise_tax$province)))
 
-for (i in 1:10) {
-    for (j in 1:15) {
-        year[j,i] <- 2003 + j
-        date[j,i] <- str_c(as.character(2003 + j), "01-01", sep = "-")
-        province[j,i] <- unique(excise_tax$province)[i]
-        tax_excise[j,i] <- NA
-        tax_sales[j,i] <- NA
-        fed_excise[j,i] <- NA
-        yday[j,i] <- NA
+for (j in 1:10) {
+    for (i in 1:15) {
+        year[i,j] <- 2003 + i
+        date[i,j] <- str_c(as.character(2003 + i), "01-01", sep = "-")
+        province[i,j] <- unique(excise_tax$province)[j]
+        tax_excise[i,j] <- NA
+        tax_sales[i,j] <- NA
+        fed_excise[i,j] <- NA
+        yday[i,j] <- NA
     }  
 }
 
@@ -76,25 +76,57 @@ tax <- tax %>%
     fill(tax_excise, tax_sales, fed_excise, .direction = "down")
 
 # Within a given year, create a column equal to the number of days until the subsequent date.
-excise_tax$yday <- yday(excise_tax$date)
-tax$yday[is.na(tax$yday)] <- 0
-group_by(tax, province)
-tax$period <- 0
+tax$yday <- yday(tax$date)
 
-for (i in seq_along(yday)) {
+# Calculating the period of time within each year that a given tax rate was in effect. This
+# for loop fails on the last iteration (because i + 1 is not defined) but I already have what 
+# I need by then.
+
+tax$period <- 0
+group_by(tax, province)
+
+for (i in seq_along(tax$date)) {
     if (tax$year[i+1] == tax$year[i])  {
-        tax$period[i] <- tax$yday[i+1] - tax$yday[i]
+        tax$period[i] <- tax$yday[i+1] - tax$yday[i] + 1
         }
     else {
-        tax$period[i] <- 365 - tax$yday[i]
+        tax$period[i] <- 365 - tax$yday[i] + 1
     }
 }
 
+# Ungrouping Tibble. Removing unnecessary columns.
+tax <- ungroup(tax)
+tax <- tax %>% 
+    select(-c(change_excise, change_sales, fed_change)) %>%
+    filter(year != 2003 & year != 2018)
+
 # Reality Check
-range(tax$period)
+# I need to figure out how to sum the number of cases per year.
+
+# Creating a weighted value for tax calculated as the fraction of the year that elapsed during 
+# the period multiplied by the tax rate. For simplicity, I'm ignoring leap years in my calculation.
+
+tax <- tax %>%
+    mutate(
+        wexcise = tax$tax_excise*(period/365), 
+        wsales = tax$tax_sales*(period/365), 
+        wfedexcise = tax$fed_excise*(period/365)
+        )
 
 
-# --------------- Constructing Variables ---------------- #
+# I now sum those tax rates within the same year to create an overall weighted tax index that 
+# represents the expected tax paid, assuming people are equally likely to smoke on all days. 
+
+tax_merge <- tax %>%
+    group_by(province, year) %>%
+    summarise(
+        wtsales = sum(wsales), 
+        wtexcise = sum(wexcise), 
+        wtfedexcise = sum(wfedexcise)
+    )
+tax_merge$year <- as.character(tax_merge$year)
+
+# --------------- Constructing Remaining Variables ---------------- #
 
 # Creating weights for cigarette prices by province relative to their 2006 values
 weight <- cpi_cig_2002
@@ -173,7 +205,14 @@ sales_carton$year <- sales_carton$year %>%
 mdta <- cig_prices %>%
     left_join(sales_carton, by = c("province", "year")) %>%
     left_join(rgdppc, by = c("province", "year")) %>% 
-    left_join(population, by = c("province", "year"))
+    left_join(population, by = c("province", "year")) %>%
+    left_join(tax_merge, by = c("province", "year"))
+
+###
+# This is failing because I need to create a consistent merge ID. 
+
+###
+
 
 # Filtering to exclude cases where Carton Sales data is not available, or where full years
 # are not available. 
@@ -183,6 +222,7 @@ mdta <- mdta %>%
 
 # Cleaning up intermediate steps
 rm(list = c("weight", "cpi_cig_2002", "cig_prices_2006", "nomgdp", "cpi_general_2002", "population", 
-            "rgdp", "sales_carton", "rgdppc", "cig_prices"))
+            "rgdp", "sales_carton", "rgdppc", "cig_prices", "tax", "tax_merge", "add", "excise_tax"))
+
 
 
