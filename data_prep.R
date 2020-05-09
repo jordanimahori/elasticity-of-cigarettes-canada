@@ -93,9 +93,6 @@ tax <- tax %>%
     select(-c(change_excise, change_sales, fed_change)) %>%
     filter(year != 2003)
 
-# Reality Check
-# I need to figure out how to sum the number of cases per year.
-
 # Creating a weighted value for tax calculated as the fraction of the year that elapsed during 
 # the period multiplied by the tax rate.
 tax <- mutate(tax, ndays = 365*(!(leap_year(tax$year))) + 366*(leap_year(tax$year)))
