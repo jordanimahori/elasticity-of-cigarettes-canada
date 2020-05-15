@@ -20,13 +20,13 @@ library(tidyverse)
 library(lubridate)
 
 # Loading Datasets to Memory
-cig_prices_2006 <- read_csv("datasets/cigarette_prices_2006.csv")
-cpi_cig_2002 <- read_csv("datasets/cpi_2002_cigarettes.csv")
-cpi_general_2002 <- read_csv("datasets/cpi_2002_general.csv")
-tax_data <- read_csv("datasets/excise_tax_cigs.csv")
-nomgdp <- read_csv("datasets/ngdp.csv")
-population <- read_csv("datasets/population.csv")
-sales_carton <- read_csv("datasets/sales_cartons_cigarettes.csv")
+cig_prices_2006 <- read_csv("data/cigarette_prices_2006.csv")
+cpi_cig_2002 <- read_csv("data/cpi_2002_cigarettes.csv")
+cpi_general_2002 <- read_csv("data/cpi_2002_general.csv")
+tax_data <- read_csv("data/excise_tax_cigs.csv")
+nomgdp <- read_csv("data/ngdp.csv")
+population <- read_csv("data/population.csv")
+sales_carton <- read_csv("data/sales_cartons_cigarettes.csv")
 
 
 # ------------- Cleaning Tax Dataset ------------- # 
@@ -205,5 +205,5 @@ mdta <- cig_prices %>%
 mdta <- mdta %>%
     filter(is.na(sales_carton) == FALSE & year > 2003)
 
-write_csv(mdta, "elasticity_data.csv")
+write_csv(mdta, "data/elasticity_data.csv")
 
