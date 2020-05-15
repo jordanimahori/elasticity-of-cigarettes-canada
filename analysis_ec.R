@@ -17,12 +17,8 @@ library(AER)
 library(stargazer)
 library(tidyverse)
 
-# Importing master dataset (previously cleaned and prepared in Tableau Prep)
-mdta <- read_xlsx("MASTER DATA MARCH 21(1).xlsx")
-
-# Importing e-cigarette usage data
-ecig <- read_xlsx("E-cigarette Usage Data.xlsx", sheet = 1)
-
+# Importing master dataset
+load("data/elasticity_data.RData")
 
 # --------------------- CLEANING DATA & GENERATING CONTROL VARIABLES -----------------------
 
@@ -73,7 +69,7 @@ fstage2 <- lm(lnprice ~ ln_total_tax  + rgdp_2002 + unemployment + province + as
 # Re-estimating the first model
 iv2 <- ivreg(lnsales ~ lnprice + rgdp_2002 + unemployment + province + as.factor(year) + province*year | ln_total_tax  + rgdp_2002 + unemployment + province + as.factor(year) + province*year, data = nosmuggle)
 
-# ------------------======------ ROBUSTNESS TESTS ---------------------------------
+# --------------------------- ROBUSTNESS TESTS ---------------------------------
   
 # Estimating elasticity through diff-in-diff (no time trend, no controls) 
 rb1 <- ivreg(lnsales ~ lnprice + province + as.factor(year) | ln_total_tax + province + as.factor(year), data = mdta)
@@ -126,19 +122,6 @@ ct3 <- ivreg(lnsales ~ g1lnprice + g1rgdp_2002 + province + as_factor(year) + pr
 t.test(g2lnprice = g1lnprice)
 t.test(g2rgdp_2002 = g1rgdp_2002), accum
 t.test(g2unemployment = g1unemployment), accum
-
-
-# -------------------------- RUNNING E-CIGARETTE CORRELATION TEST --------------------------
-
-# Encoding province as a factor variable
-ecig$province <- as_factor(ecig$province)
-
-# Restricting sample to years for which we have data
-ecig <- filter(ecig, year > 2002)
-
-# Test if the proportion of e-cigarette users is affected by the tax on cigarettes
-ivreg(prop30d ~ Pcig + as_factor(year) + province + province*year + rgdp_2002 + cartons_pc_15andover + unemployment + lico | totalweightedtax + as_factor(year) + province + province*year + rgdp_2002 + cartons_pc_15andover + unemployment + lico, data = ecig) 
-
 
                                            # END # 
 
